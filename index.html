@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Penyusun Jadwal Ujian Berdasarkan Excel dan KRS</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#ffffff;--ink:#1c2230;--muted:#667085;--line:#e4e7ec;
+  --accent:#1f4e8c;--accent-ink:#ffffff;--accent-soft:#eaf1fb;
+  --warn:#b54708;--warn-bg:#fffaeb;--ok:#067647;--ok-bg:#ecfdf3;--err:#b42318;--err-bg:#fef3f2;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#10131a;--card:#181c25;--ink:#e8ebf2;--muted:#98a2b3;--line:#2a3040;
+    --accent:#6ea1e8;--accent-ink:#0b0e16;--accent-soft:#18243a;
+    --warn:#fdb022;--warn-bg:#2a2112;--ok:#47cd89;--ok-bg:#112419;--err:#f97066;--err-bg:#2b1513;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:28px 20px 8px;max-width:1000px;margin:0 auto}
+header h1{margin:0 0 4px;font-size:26px;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted)}
+main{max-width:1000px;margin:0 auto;padding:12px 20px 60px;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.card h2{margin:0 0 4px;font-size:17px;display:flex;align-items:center;gap:10px}
+.card h2 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700}
+.card .sub{margin:0 0 14px;color:var(--muted);font-size:13.5px}
+label{display:block;font-size:13px;font-weight:600;margin:0 0 4px}
+input[type=text],textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+textarea{resize:vertical;min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>.grow{flex:1;min-width:220px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:4px}
+button{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 15px;border-radius:9px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{background:var(--accent-soft)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.primary:hover{filter:brightness(1.1);background:var(--accent)}
+button:disabled{opacity:.55;cursor:not-allowed}
+input[type=file]{font:inherit;font-size:13px;max-width:100%}
+.status{margin-top:10px;padding:9px 12px;border-radius:9px;font-size:13.5px;display:none}
+.status.show{display:block}
+.status.ok{background:var(--ok-bg);color:var(--ok)}
+.status.warn{background:var(--warn-bg);color:var(--warn)}
+.status.err{background:var(--err-bg);color:var(--err)}
+.bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:10px;display:none}
+.bar.show{display:block}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+details{margin-top:12px}
+summary{cursor:pointer;font-weight:600;font-size:13.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.chip{background:var(--accent-soft);color:var(--accent);padding:4px 11px;border-radius:99px;font-size:13px;font-weight:600}
+.chip.bad{background:var(--err-bg);color:var(--err)}
+.warnbox{background:var(--warn-bg);color:var(--warn);border-radius:9px;padding:10px 14px;margin-bottom:10px;font-size:13.5px}
+.warnbox.bad{background:var(--err-bg);color:var(--err)}
+.warnbox ul{margin:6px 0 0;padding-left:20px}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--accent-soft);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+td.nw{white-space:nowrap}
+td small{display:block;color:var(--muted);font-size:12px}
+tr.hari td{background:var(--bg);font-weight:700;color:var(--accent)}
+tr.hari .tag{margin-left:8px;background:var(--accent);color:var(--accent-ink);border-radius:99px;padding:1px 9px;font-size:12px}
+tr.bentrok td{background:var(--err-bg)}
+tr:last-child td{border-bottom:0}
+.badge{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent)}
+.badge.p{background:var(--warn-bg);color:var(--warn)}
+.badge.x{background:var(--err);color:#fff}
+a{color:var(--accent)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+#hasil{display:none}
+#hasil.show{display:block}
+@media print{
+  body{background:#fff;color:#000}
+  header p,.card:not(#hasil),.actions{display:none!important}
+  .card{border:0;padding:0}
+  th{background:#eee;color:#000}
+  tr.hari td{background:#f3f3f3;color:#000}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Web Penyusun Jadwal Ujian Berdasarkan Excel dan KRS</h1>
+  <p>Ambil jadwal ujian dari spreadsheet kampus, cocokkan dengan KRS kamu (dari screenshot), lalu tampilkan jadwal pribadi lengkap dengan ruang dan pengecekan bentrok.</p>
+</header>
+
+<main>
+  <!-- 1. JADWAL -->
+  <section class="card">
+    <h2><span class="n">1</span>Web Penyusun Jadwal Ujian Berdasarkan Excel dan KRS</h2>
+    <p class="sub">Unggah file Excel jadwal ujian, atau pakai link Google Spreadsheet. Tabel jadwal dicari otomatis (kolom Kode Matakuliah, Kelas Prodi, Tanggal, Waktu).</p>
+    <div class="row">
+      <div class="grow">
+        <label for="fileData">Unggah file jadwal (.xlsx / .csv)</label>
+        <input type="file" id="fileData" accept=".xlsx,.xls,.csv">
+      </div>
+    </div>
+    <details>
+      <summary>Atau pakai link Google Spreadsheet</summary>
+      <div class="row" style="margin-top:10px">
+        <div class="grow">
+          <label for="link">Link spreadsheet</label>
+          <input type="text" id="link" placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=...">
+        </div>
+        <div class="grow">
+          <label for="tab">Nama tab jadwal (opsional)</label>
+          <input type="text" id="tab" placeholder="nama tab yang berisi jadwal">
+        </div>
+        <button id="btnAmbil">Ambil data</button>
+      </div>
+      <p class="hint">Akses harus <i>Anyone with the link → Viewer</i>. Link hanya membuka satu tab: pakai link dari tab jadwal, atau isi nama tabnya. Kalau gagal, unggah file saja.</p>
+    </details>
+    <div class="status" id="stData"></div>
+  </section>
+
+  <!-- 2. KRS SAYA -->
+  <section class="card">
+    <h2><span class="n">2</span>KRS saya</h2>
+    <p class="sub">Unggah screenshot KRS (yang ada kolom Kode, Mata Kuliah, dan Nama Kelas), atau ketik/tempel manual. Cukup kode matkul dan kelas per baris.</p>
+    <div class="row">
+      <div class="grow">
+        <label for="fileSS">Screenshot KRS (boleh lebih dari satu)</label>
+        <input type="file" id="fileSS" accept="image/*" multiple>
+      </div>
+      <button id="btnOCR">Baca teks (OCR)</button>
+    </div>
+    <div class="bar" id="bar"><i></i></div>
+    <div class="status" id="stOCR"></div>
+    <label for="daftar" style="margin-top:14px">Kode kelas <span style="font-weight:400;color:var(--muted)">(bisa dikoreksi manual)</span></label>
+    <textarea id="daftar" placeholder="TIF26413 5TI2&#10;FIK25203 1TI2&#10;IBI25206 7TI1"></textarea>
+    <div class="hint">Hasil OCR kadang salah baca satu karakter. Periksa kode (mis. TIF26413) dan kelas (mis. 5TI2) sebelum mencari.</div>
+    <div class="actions">
+      <button id="btnCari" class="primary">Cari jadwal saya</button>
+    </div>
+    <div class="status" id="stCari"></div>
+  </section>
+
+  <!-- HASIL -->
+  <section class="card" id="hasil">
+    <h2>Jadwal ujian saya</h2>
+    <div class="chips" id="chips"></div>
+    <div id="peringatan"></div>
+    <div class="table-wrap"><table id="tabel"></table></div>
+    <div class="actions">
+      <button id="btnIcs" class="primary">Tambah ke kalender (.ics)</button>
+      <button id="btnXlsx">Unduh Excel</button>
+      <button id="btnCsv">Unduh CSV</button>
+      <button id="btnCetak">Cetak</button>
+    </div>
+    <p class="hint">Kelas yang dibagi ke beberapa ruang menampilkan semua ruangnya. Cek daftar peserta (kalau ada tautannya) untuk tahu kamu di ruang yang mana.</p>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<!-- ============ LOGIKA INTI (tanpa DOM) ============ -->
+<script id="core">
+const NAMA_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const NAMA_BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const BULAN = { jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, may: 4, jun: 5, jul: 6, agu: 7, agt: 7, aug: 7, sep: 8, okt: 9, oct: 9, nov: 10, des: 11, dec: 11 };
+
+function fmtTanggal(d) {
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// "02 Nov 2026" / "2 November 2026" / "2026-11-02"
+function parseTanggalID(s) {
+  const t = String(s == null ? "" : s).trim();
+  let m = t.match(/(\d{1,2})[\s\-\/]+([A-Za-z]{3,})[\s\-\/]+(\d{4})/);
+  if (m) {
+    const mo = BULAN[m[2].slice(0, 3).toLowerCase()];
+    if (mo == null) return null;
+    return { date: new Date(+m[3], mo, +m[1]), dd: m[1].padStart(2, "0"), mon: m[2].slice(0, 3) };
+  }
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return { date: d, dd: m[3], mon: NAMA_BULAN[d.getMonth()] };
+  }
+  return null;
+}
+
+// "10:30-12:00" -> menit sejak 00:00
+function parseWaktu(s) {
+  const m = String(s == null ? "" : s).match(/(\d{1,2})[:.](\d{2})\s*(?:-|–|s\/d|sd)\s*(\d{1,2})[:.](\d{2})/i);
+  if (!m) return null;
+  return { mulai: +m[1] * 60 + +m[2], selesai: +m[3] * 60 + +m[4] };
+}
+function jam(menit) {
+  return `${String(Math.floor(menit / 60)).padStart(2, "0")}:${String(menit % 60).padStart(2, "0")}`;
+}
+
+// ---- deteksi tabel jadwal ----
+const H = {
+  kode: /^kode\s*(mata\s*kuliah|matakuliah|mk)$/,
+  matkul: /^(nama\s*)?(mata\s*kuliah|matakuliah)$/,
+  kelas: /^kelas(\s*prodi)?$/,
+  tanggal: /^tanggal$/,
+  hari: /^hari$/,
+  waktu: /^(waktu|jam)$/,
+  ruang: /^ruang/,
+  dosen: /^dosen/,
+  tp: /^ket/,
+  sks: /^sks$/,
+  terisi: /^terisi$/,
+  pch: /^pch$/,
+};
+function _hdr(c) { return String(c == null ? "" : c).trim().toLowerCase().replace(/\s+/g, " "); }
+
+// sheets = [{nama, aoa}] -> {sheet, header, map} atau null
+function deteksiJadwal(sheets) {
+  let terbaik = null;
+  for (const s of sheets) {
+    const lim = Math.min(s.aoa.length, 40);
+    for (let i = 0; i < lim; i++) {
+      const map = {};
+      (s.aoa[i] || []).forEach((c, idx) => {
+        const t = _hdr(c);
+        if (!t) return;
+        for (const k in H) if (!(k in map) && H[k].test(t)) { map[k] = idx; break; }
+      });
+      if (map.kode != null && map.kelas != null && map.tanggal != null && map.waktu != null) {
+        if (!terbaik || s.aoa.length > terbaik.sheet.aoa.length) terbaik = { sheet: s, header: i, map };
+        break;
+      }
+    }
+  }
+  return terbaik;
+}
+
+function bacaJadwal(det) {
+  const { sheet, header, map } = det;
+  const out = [];
+  for (let i = header + 1; i < sheet.aoa.length; i++) {
+    const r = sheet.aoa[i] || [];
+    const v = (k) => (map[k] == null ? "" : String(r[map[k]] == null ? "" : r[map[k]]).trim());
+    const kode = v("kode").toUpperCase();
+    const kelas = v("kelas").toUpperCase().replace(/\s+/g, "");
+    const t = parseTanggalID(v("tanggal"));
+    const w = parseWaktu(v("waktu"));
+    if (!kode || !kelas || !t || !w) continue;
+    out.push({
+      kode, kelas, matkul: v("matkul"), date: t.date, dd: t.dd, mon: t.mon,
+      mulai: w.mulai, selesai: w.selesai,
+      ruang: v("ruang"), dosen: v("dosen"), tp: v("tp"), sks: v("sks"),
+      terisi: parseInt(v("terisi"), 10) || 0, pch: parseInt(v("pch"), 10) || 0,
+    });
+  }
+  return out;
+}
+
+// sheet daftar tautan PDF peserta: kolom "NAMA FILE" dan "OPEN DOC" -> Map(namaFile -> url)
+function bacaLink(sheets) {
+  const m = new Map();
+  for (const s of sheets) {
+    for (let i = 0; i < Math.min(s.aoa.length, 10); i++) {
+      const row = (s.aoa[i] || []).map(_hdr);
+      const a = row.findIndex((c) => /nama\s*file/.test(c));
+      const b = row.findIndex((c) => /open\s*doc/.test(c));
+      if (a >= 0 && b >= 0) {
+        for (let j = i + 1; j < s.aoa.length; j++) {
+          const r = s.aoa[j] || [];
+          const k = String(r[a] == null ? "" : r[a]).trim().toLowerCase();
+          const u = String(r[b] == null ? "" : r[b]).trim();
+          if (k && /^https?:/.test(u)) m.set(k, u);
+        }
+        break;
+      }
+    }
+  }
+  return m;
+}
+
+// ---- baca KRS dari teks (hasil OCR / ketikan) ----
+function _digit(s) { return s.replace(/[OQ]/g, "0").replace(/[IL]/g, "1"); }
+
+function parseDaftarKelas(teks) {
+  const hasil = [];
+  for (const mentah of String(teks || "").split(/\r?\n/)) {
+    let baris = mentah.toUpperCase().replace(/[|]/g, " ").trim();
+    if (!baris) continue;
+    let kode = "";
+    const mk = baris.match(/\b([A-Z]{3})([0-9OQIL]{5,6})\b/);
+    if (mk && /\d{3}/.test(mk[2])) {
+      kode = mk[1] + _digit(mk[2]);
+      baris = baris.replace(mk[0], " ");
+    }
+    let kelas = "";
+    const mc = baris.match(/\b([1-9])\s?([A-Z]{2,3})\s?(\d{1,2})\b/);
+    if (mc) kelas = mc[1] + mc[2] + mc[3];
+    if (!kode && !kelas) continue;
+    hasil.push({ kode, kelas, baris: mentah.trim() });
+  }
+  return hasil;
+}
+
+// ---- cocokkan ----
+function cariJadwal(rows, entries, links) {
+  const items = [], tidak = [], ambigu = [], koreksi = [];
+  const dipakai = new Set();
+  const kodeSet = new Set(rows.map((r) => r.kode));
+  const beda = (a, b) => { let n = 0; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) n++; return n; };
+  for (const e0 of entries) {
+    const e = { ...e0 };
+    if (!e.kode) { tidak.push({ teks: e.baris, alasan: "Kode matkul tidak terbaca" }); continue; }
+    // koreksi salah baca OCR satu karakter (mis. TIF -> TLF) kalau hanya ada satu kemungkinan
+    if (!kodeSet.has(e.kode)) {
+      const alt = [...kodeSet].filter((k) => k.length === e.kode.length && beda(k, e.kode) <= 1 &&
+        (!e.kelas || rows.some((r) => r.kode === k && r.kelas === e.kelas)));
+      if (alt.length === 1) { koreksi.push(`Kode ${e.kode} dibaca sebagai ${alt[0]}`); e.kode = alt[0]; }
+    }
+    const kandidat = rows.filter((r) => r.kode === e.kode);
+    const kelasAda = [...new Set(kandidat.map((r) => r.kelas))].sort();
+    if (!e.kelas) {
+      if (kelasAda.length === 1) {
+        koreksi.push(`Kelas untuk ${e.kode} tidak terbaca, dipakai satu-satunya kelas di jadwal: ${kelasAda[0]}`);
+        e.kelas = kelasAda[0];
+      } else {
+        ambigu.push({ kode: e.kode, kelas: kelasAda });
+        continue;
+      }
+    }
+    const key = e.kode + "|" + e.kelas;
+    if (dipakai.has(key)) continue;
+    dipakai.add(key);
+    const hit = kandidat.filter((r) => r.kelas === e.kelas);
+    if (!hit.length) {
+      tidak.push({
+        teks: `${e.kode} ${e.kelas}`,
+        alasan: kandidat.length
+          ? `kode ada di jadwal, tetapi bukan untuk kelas ${e.kelas}. Kelas yang ada: ${kelasAda.join(", ")}`
+          : "kode tidak ada di jadwal ujian",
+      });
+      continue;
+    }
+    const grup = new Map();
+    for (const r of hit) {
+      const g = `${fmtTanggal(r.date)}|${r.mulai}|${r.selesai}|${r.tp}`;
+      if (!grup.has(g)) grup.set(g, { ...r, ruangList: [], link: "" });
+      const o = grup.get(g);
+      if (r.ruang && !o.ruangList.includes(r.ruang)) o.ruangList.push(r.ruang);
+    }
+    for (const o of grup.values()) {
+      const fn = `${o.dd} ${o.mon} ${o.kode} ${o.kelas}.pdf`.toLowerCase();
+      o.link = (links && links.get(fn)) || "";
+      items.push(o);
+    }
+  }
+  items.sort((a, b) => a.date - b.date || a.mulai - b.mulai || a.matkul.localeCompare(b.matkul));
+  tandaiBentrok(items);
+  return { items, tidak, ambigu, koreksi };
+}
+
+function tandaiBentrok(items) {
+  items.forEach((o) => (o.bentrok = []));
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i], b = items[j];
+      if (fmtTanggal(a.date) === fmtTanggal(b.date) && a.mulai < b.selesai && b.mulai < a.selesai) {
+        a.bentrok.push(`${b.matkul} (${b.kelas})`);
+        b.bentrok.push(`${a.matkul} (${a.kelas})`);
+      }
+    }
+  }
+}
+
+function barisEkspor(items) {
+  return items.map((o) => ({
+    Tanggal: fmtTanggal(o.date),
+    Hari: NAMA_HARI[o.date.getDay()],
+    Waktu: `${jam(o.mulai)}-${jam(o.selesai)}`,
+    Kode: o.kode,
+    "Mata Kuliah": o.matkul,
+    Kelas: o.kelas,
+    Jenis: o.tp,
+    Ruang: o.ruangList.join(" / "),
+    Dosen: o.dosen,
+    Catatan: o.bentrok.length ? "BENTROK dengan " + o.bentrok.join(", ") : "",
+  }));
+}
+
+function buatICS(items, sekarang) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const dt = (d, menit) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(Math.floor(menit / 60))}${pad(menit % 60)}00`;
+  const esc = (s) => String(s == null ? "" : s).replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n");
+  const stamp = (sekarang || new Date()).toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Jadwal Ujian Saya//ID", "CALSCALE:GREGORIAN"];
+  items.forEach((o, i) => {
+    L.push(
+      "BEGIN:VEVENT",
+      `UID:ujian-${i}-${o.kode}-${o.kelas}-${dt(o.date, o.mulai)}@jadwal-ujian-saya`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${dt(o.date, o.mulai)}`,
+      `DTEND:${dt(o.date, o.selesai)}`,
+      `SUMMARY:${esc(`Ujian ${o.matkul} (${o.kelas})`)}`,
+      `LOCATION:${esc(o.ruangList.join(" / "))}`,
+      `DESCRIPTION:${esc(`${o.tp}${o.dosen ? " - Dosen: " + o.dosen : ""}${o.ruangList.length > 1 ? " - Kelas dibagi beberapa ruang, cek daftar peserta" : ""}`)}`,
+      "BEGIN:VALARM", "TRIGGER:-PT60M", "ACTION:DISPLAY", "DESCRIPTION:Ujian 1 jam lagi", "END:VALARM",
+      "END:VEVENT"
+    );
+  });
+  L.push("END:VCALENDAR");
+  return L.join("\r\n");
+}
+</script>
+
+<!-- ============ ANTARMUKA ============ -->
+<script>
+const $ = (id) => document.getElementById(id);
+let jadwalRows = [];
+let linkMap = new Map();
+let hasil = null; // {items,...}
+
+function status(el, tipe, pesan) { el.className = "status show " + tipe; el.textContent = pesan; }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+function tglPendek(d) { return `${d.getDate()} ${NAMA_BULAN[d.getMonth()]}`; }
+
+// simpan data KRS & link di browser ini (opsional)
+try {
+  const d = localStorage.getItem("ujian_daftar"); if (d) $("daftar").value = d;
+  const l = localStorage.getItem("ujian_link"); if (l) $("link").value = l;
+  const t = localStorage.getItem("ujian_tab"); if (t) $("tab").value = t;
+} catch (e) {}
+$("daftar").addEventListener("input", () => { try { localStorage.setItem("ujian_daftar", $("daftar").value); } catch (e) {} });
+
+function muatSheets(sheets, sumber, dariLink) {
+  const det = deteksiJadwal(sheets);
+  if (!det) {
+    jadwalRows = [];
+    const nama = sheets.map((s) => `"${s.nama}"`).join(", ");
+    return status($("stData"), "err",
+      `Tabel jadwal tidak ditemukan (butuh kolom Kode Matakuliah, Kelas Prodi, Tanggal, Waktu). Tab yang terbaca: ${nama}.` +
+      (dariLink ? " Link ini mungkin membuka tab lain: salin link dari tab jadwal, isi nama tab, atau unggah file Excel-nya." : ""));
+  }
+  jadwalRows = bacaJadwal(det);
+  linkMap = bacaLink(sheets);
+  if (!jadwalRows.length) return status($("stData"), "err", "Tabel jadwal ketemu, tetapi tidak ada baris yang bisa dibaca (cek format tanggal dan waktu).");
+  const tgl = jadwalRows.map((r) => r.date.getTime());
+  const awal = new Date(Math.min(...tgl)), akhir = new Date(Math.max(...tgl));
+  status($("stData"), "ok",
+    `${jadwalRows.length} baris jadwal terbaca dari tab "${det.sheet.nama}" (${tglPendek(awal)} sampai ${tglPendek(akhir)} ${akhir.getFullYear()}). ` +
+    (linkMap.size ? `Tautan daftar peserta: ${linkMap.size}.` : "Tidak ada tautan daftar peserta."));
+}
+
+// --- unggah file jadwal ---
+$("fileData").onchange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  status($("stData"), "warn", "Membaca file...");
+  try {
+    if (/\.csv$/i.test(f.name)) {
+      muatSheets([{ nama: "CSV", aoa: Papa.parse(await f.text(), { skipEmptyLines: true }).data }], f.name, false);
+    } else {
+      if (!window.XLSX) throw new Error("Library Excel gagal dimuat (cek koneksi internet).");
+      const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+      muatSheets(
+        wb.SheetNames.map((n) => ({ nama: n, aoa: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: "", raw: false }) })),
+        f.name, false
+      );
+    }
+  } catch (err) { status($("stData"), "err", "Gagal membaca file: " + err.message); }
+};
+
+// --- ambil dari link ---
+$("btnAmbil").onclick = async () => {
+  const link = $("link").value.trim();
+  const m = link.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) return status($("stData"), "err", "Link tidak dikenali. Tempel link Google Spreadsheet lengkap.");
+  try { localStorage.setItem("ujian_link", link); localStorage.setItem("ujian_tab", $("tab").value); } catch (e) {}
+  const tab = $("tab").value.trim();
+  const g = link.match(/[#&?]gid=(\d+)/);
+  const gid = g ? g[1] : "0";
+  const base = `https://docs.google.com/spreadsheets/d/${m[1]}`;
+  const urls = tab
+    ? [`${base}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`]
+    : [`${base}/gviz/tq?tqx=out:csv&gid=${gid}`, `${base}/export?format=csv&gid=${gid}`];
+  $("btnAmbil").disabled = true;
+  status($("stData"), "warn", "Mengambil data...");
+  let teks = null;
+  for (const u of urls) {
+    try {
+      const res = await fetch(u);
+      if (!res.ok) continue;
+      const t = await res.text();
+      if (t.trim().startsWith("<")) continue;
+      teks = t; break;
+    } catch (err) { /* coba berikutnya */ }
+  }
+  $("btnAmbil").disabled = false;
+  if (teks == null) {
+    return status($("stData"), "err",
+      "Gagal mengambil data. Pastikan akses 'Anyone with the link - Viewer', atau unggah file Excel jadwalnya.");
+  }
+  muatSheets([{ nama: tab || `gid ${gid}`, aoa: Papa.parse(teks, { skipEmptyLines: true }).data }], "spreadsheet", true);
+};
+
+// --- OCR screenshot KRS ---
+$("btnOCR").onclick = async () => {
+  const files = [...$("fileSS").files];
+  if (!files.length) return status($("stOCR"), "err", "Pilih minimal satu screenshot dulu.");
+  if (!window.Tesseract) return status($("stOCR"), "err", "Library OCR gagal dimuat. Cek koneksi internet lalu muat ulang halaman.");
+  $("btnOCR").disabled = true;
+  $("bar").classList.add("show");
+  status($("stOCR"), "warn", "Menyiapkan OCR (pertama kali perlu mengunduh data bahasa)...");
+  let idx = 0, worker;
+  const logger = (m) => {
+    if (m.status === "recognizing text") {
+      $("bar").firstElementChild.style.width = (((idx + m.progress) / files.length) * 100).toFixed(0) + "%";
+      status($("stOCR"), "warn", `Membaca gambar ${idx + 1} dari ${files.length}...`);
+    }
+  };
+  try {
+    worker = await Tesseract.createWorker("eng", 1, { logger });
+    try { await worker.setParameters({ tessedit_pageseg_mode: "6" }); } catch (e) {}
+    const teks = [];
+    for (idx = 0; idx < files.length; idx++) {
+      const { data } = await worker.recognize(files[idx]);
+      teks.push(data.text.trim());
+    }
+    await worker.terminate();
+    // tampilkan hanya baris yang terbaca sebagai kode+kelas, supaya mudah dikoreksi
+    const entri = parseDaftarKelas(teks.join("\n"));
+    const rapi = entri.map((e) => `${e.kode || "???"} ${e.kelas || "???"}`).join("\n");
+    $("daftar").value = rapi || teks.join("\n");
+    $("daftar").dispatchEvent(new Event("input"));
+    $("bar").firstElementChild.style.width = "100%";
+    status($("stOCR"), entri.length ? "ok" : "warn",
+      entri.length
+        ? `${entri.length} kelas terbaca. Periksa daftar di bawah (tanda ??? berarti tidak terbaca, isi manual), lalu klik Cari jadwal saya.`
+        : "Tidak ada pola kode dan kelas yang terbaca. Teks mentah ditampilkan di bawah, ketik ulang manual dengan format: KODE KELAS (mis. TIF26413 5TI2).");
+  } catch (err) {
+    status($("stOCR"), "err", "OCR gagal: " + (err && err.message ? err.message : err));
+    try { if (worker) await worker.terminate(); } catch (e) {}
+  } finally {
+    $("btnOCR").disabled = false;
+    setTimeout(() => $("bar").classList.remove("show"), 800);
+  }
+};
+
+// --- cari ---
+$("btnCari").onclick = () => {
+  const st = $("stCari");
+  if (!jadwalRows.length) return status(st, "err", "Muat jadwal ujian dulu (langkah 1).");
+  const entri = parseDaftarKelas($("daftar").value);
+  if (!entri.length) return status(st, "err", "Kode kelas kosong atau formatnya belum terbaca. Tulis satu baris per matkul, mis. TIF26413 5TI2.");
+  hasil = cariJadwal(jadwalRows, entri, linkMap);
+  tampilkan(entri.length);
+  const n = hasil.items.length;
+  status(st, hasil.tidak.length || hasil.ambigu.length ? "warn" : "ok",
+    n ? `${n} jadwal ujian ditemukan.` : "Tidak ada jadwal yang cocok.");
+  $("hasil").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+function labelTanggal(d) {
+  const now = new Date();
+  const hariIni = fmtTanggal(now);
+  const besok = fmtTanggal(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const f = fmtTanggal(d);
+  const tag = f === hariIni ? '<span class="tag">Hari ini</span>' : f === besok ? '<span class="tag">Besok</span>' : "";
+  return `${NAMA_HARI[d.getDay()]}, ${d.getDate()} ${NAMA_BULAN[d.getMonth()]} ${d.getFullYear()}${tag}`;
+}
+
+function tampilkan(jumlahInput) {
+  $("hasil").classList.add("show");
+  const { items, tidak, ambigu, koreksi } = hasil;
+  const hari = new Set(items.map((o) => fmtTanggal(o.date)));
+  const jmlBentrok = items.filter((o) => o.bentrok.length).length;
+  const mk = new Set(items.map((o) => o.kode + o.kelas)).size;
+  $("chips").innerHTML =
+    `<span class="chip">${mk} mata kuliah</span><span class="chip">${items.length} sesi ujian</span><span class="chip">${hari.size} hari</span>` +
+    (items.length ? `<span class="chip">${tglPendek(items[0].date)} sampai ${tglPendek(items[items.length - 1].date)}</span>` : "") +
+    (jmlBentrok ? `<span class="chip bad">${jmlBentrok} sesi bentrok</span>` : "");
+
+  let w = "";
+  if (jmlBentrok) {
+    const daftar = items.filter((o) => o.bentrok.length).map((o) => `${labelTgl(o)} ${o.matkul} (${o.kelas}) bentrok dengan ${o.bentrok.join(", ")}`);
+    w += `<div class="warnbox bad">Ada ujian yang jamnya bertabrakan:<ul>${daftar.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  }
+  if (koreksi.length) {
+    w += `<div class="warnbox">Dikoreksi otomatis (pastikan benar):<ul>${koreksi.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  }
+  if (tidak.length) {
+    w += `<div class="warnbox">Tidak ditemukan di jadwal:<ul>${tidak.map((t) => `<li>${esc(t.teks)}: ${esc(t.alasan)}</li>`).join("")}</ul></div>`;
+  }
+  if (ambigu.length) {
+    w += `<div class="warnbox">Kelas belum terbaca untuk kode berikut. Tambahkan kelasnya di daftar lalu cari lagi:<ul>${ambigu.map((a) => `<li>${esc(a.kode)}${a.kelas.length ? " (kelas yang ada di jadwal: " + esc(a.kelas.join(", ")) + ")" : " (kode tidak ada di jadwal)"}</li>`).join("")}</ul></div>`;
+  }
+  $("peringatan").innerHTML = w;
+
+  let html = "<thead><tr><th>Waktu</th><th>Mata kuliah</th><th>Kelas</th><th>Jenis</th><th>Ruang</th><th>Dosen</th></tr></thead><tbody>";
+  let terakhir = "";
+  for (const o of items) {
+    const f = fmtTanggal(o.date);
+    if (f !== terakhir) { html += `<tr class="hari"><td colspan="6">${labelTanggal(o.date)}</td></tr>`; terakhir = f; }
+    const praktek = /prak/i.test(o.tp);
+    const ruang = o.ruangList.length ? esc(o.ruangList.join(" / ")) : "-";
+    const catatRuang =
+      (o.ruangList.length > 1 ? `Dibagi ${o.ruangList.length} ruang` : "") +
+      (o.link ? `${o.ruangList.length > 1 ? ", " : ""}<a href="${esc(o.link)}" target="_blank" rel="noopener">cek daftar peserta</a>` : "");
+    html += `<tr class="${o.bentrok.length ? "bentrok" : ""}">` +
+      `<td class="nw"><b>${jam(o.mulai)}</b> - ${jam(o.selesai)}${o.bentrok.length ? '<small><span class="badge x">BENTROK</span></small>' : ""}</td>` +
+      `<td>${esc(o.matkul)}<small>${esc(o.kode)}${o.sks ? " &middot; " + esc(o.sks) + " SKS" : ""}</small></td>` +
+      `<td class="nw">${esc(o.kelas)}</td>` +
+      `<td><span class="badge ${praktek ? "p" : ""}">${esc(o.tp || "-")}</span></td>` +
+      `<td>${ruang}${catatRuang ? `<small>${catatRuang}</small>` : ""}</td>` +
+      `<td>${esc(o.dosen)}</td></tr>`;
+  }
+  $("tabel").innerHTML = html + "</tbody>";
+}
+function labelTgl(o) { return `${o.date.getDate()} ${NAMA_BULAN[o.date.getMonth()]} ${jam(o.mulai)}`; }
+
+// --- unduh ---
+function unduh(isi, nama, tipe) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([isi], { type: tipe }));
+  a.download = nama;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+$("btnIcs").onclick = () => { if (hasil && hasil.items.length) unduh(buatICS(hasil.items), "jadwal_ujian.ics", "text/calendar;charset=utf-8"); };
+$("btnCsv").onclick = () => { if (hasil && hasil.items.length) unduh("﻿" + Papa.unparse(barisEkspor(hasil.items)), "jadwal_ujian.csv", "text/csv;charset=utf-8"); };
+$("btnXlsx").onclick = () => {
+  if (!hasil || !hasil.items.length) return;
+  if (!window.XLSX) return alert("Library Excel gagal dimuat (cek koneksi internet). Pakai unduh CSV sebagai gantinya.");
+  const ws = XLSX.utils.json_to_sheet(barisEkspor(hasil.items));
+  ws["!cols"] = [12, 9, 13, 11, 36, 8, 9, 22, 32, 30].map((w) => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Jadwal Ujian");
+  XLSX.writeFile(wb, "jadwal_ujian.xlsx");
+};
+$("btnCetak").onclick = () => window.print();
+</script>
+</body>
+</html>
